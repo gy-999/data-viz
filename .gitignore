@@ -1,0 +1,11 @@
+# 数据与产出（含业务数据，严禁入库）
+output/
+**/warehouse.db
+**/imgs/
+**/*.html
+!scripts/_dashboard_template.html
+__pycache__/
+*.pyc
+*.zip
+.DS_Store
+view_dict.json

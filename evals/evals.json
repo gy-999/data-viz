@@ -1,0 +1,35 @@
+{
+  "skill_name": "data-viz",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "帮我看一下 D:\数据 目录里有什么数据",
+      "expected_output": "扫描目录→自动识别6种文件类型→按类型分组统计→输出源版整理",
+      "files": []
+    },
+    {
+      "id": 2,
+      "prompt": "分析一下 MySQL 的 cqcc 库，sa_label 表有什么问题",
+      "expected_output": "连接MySQL→探源六项→发现空值率、时间范围、枚举越界→输出数据质量报告",
+      "files": []
+    },
+    {
+      "id": 3,
+      "prompt": "对比 ZJsftp 目录下的 WELL 和 ODF 数据",
+      "expected_output": "多源自动发现→按目录名分流→分别统计→交叉对比报告",
+      "files": []
+    },
+    {
+      "id": 4,
+      "prompt": "统计 sa_label 表的 label_status 分布并出图",
+      "expected_output": "口径拍板→分组统计→Excel报表+HTML看板+Markdown+口径卡",
+      "files": []
+    },
+    {
+      "id": 5,
+      "prompt": "浙江571.sql 这个 SQL 文件太大了，先看看里面有什么",
+      "expected_output": "SQL INSERT解析→提取VALUES→行数估算→抽样预览→用户确认",
+      "files": []
+    }
+  ]
+}
