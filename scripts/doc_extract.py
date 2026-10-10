@@ -5,12 +5,36 @@
 so unstructured documents enter the standard analysis pipeline.
 Output: <outdir>/table_N.csv (utf-8-sig, Excel-friendly) + summary JSON
 """
-import os, sys, json, csv
+import os, sys, json, csv, time
 from pathlib import Path
+
+
+def _open_docx_robust(path):
+    """Open docx; auto-repair macroEnabled pseudo-docx (wrong content type) via temp rezip."""
+    from docx import Document
+    try:
+        return Document(path)
+    except ValueError as e:
+        if "macroEnabled" not in str(e):
+            raise
+        import zipfile, tempfile, shutil as _sh
+        tmp = os.path.join(tempfile.gettempdir(), "dv_fix_" + str(int(time.time())) + ".docx")
+        with zipfile.ZipFile(path) as zin, zipfile.ZipFile(tmp, "w", zipfile.ZIP_DEFLATED) as zout:
+            for item in zin.infolist():
+                data = zin.read(item.filename)
+                if item.filename == "[Content_Types].xml":
+                    data = data.replace(
+                        b"application/vnd.ms-word.document.macroEnabled.main+xml",
+                        b"application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml")
+                zout.writestr(item, data)
+        doc = Document(tmp)
+        try: os.remove(tmp)
+        except Exception: pass
+        return doc
 
 def extract_docx(path, outdir):
     from docx import Document
-    doc = Document(path)
+    doc = _open_docx_robust(path)
     csvs = []
     paras = [p.text.strip() for p in doc.paragraphs if p.text.strip()]
     for i, tb in enumerate(doc.tables, 1):
