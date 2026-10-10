@@ -69,6 +69,35 @@ def extract_pptx(path, outdir):
     return {"kind": "pptx", "slides": len(prs.slides), "text_shapes": len(texts),
             "tables": tno, "csvs": csvs, "text_preview": texts[:5]}
 
+
+def extract_pdf(path, outdir):
+    """PDF: per-page text -> fulltext.txt; tables -> CSV (pdfplumber)"""
+    import pdfplumber
+    csvs = []; texts = []; tno = 0
+    with pdfplumber.open(path) as pdf:
+        n_pages = len(pdf.pages)
+        for pi, page in enumerate(pdf.pages, 1):
+            try: txt = page.extract_text() or ""
+            except Exception: txt = ""
+            if txt.strip():
+                texts.append("=== 第 " + str(pi) + " 页 ===" + chr(10) + txt)
+            try: tables = page.extract_tables() or []
+            except Exception: tables = []
+            for tb in tables:
+                tno += 1
+                fp = os.path.join(outdir, "page%03d_table_%02d.csv" % (pi, tno))
+                with open(fp, "w", encoding="utf-8-sig", newline="") as f:
+                    w = csv.writer(f)
+                    for row in tb:
+                        w.writerow(["" if c is None else str(c).strip().replace(chr(10), " ") for c in row])
+                csvs.append({"file": fp, "rows": len(tb), "page": pi})
+    fulltext_fp = os.path.join(outdir, "fulltext.txt")
+    with open(fulltext_fp, "w", encoding="utf-8") as f:
+        f.write((chr(10) + chr(10)).join(texts))
+    return {"kind": "pdf", "pages": n_pages, "tables": tno, "csvs": csvs,
+            "text_chars": sum(len(t) for t in texts),
+            "fulltext": fulltext_fp, "text_preview": texts[:2]}
+
 def extract_xlsx(path, outdir):
     import openpyxl
     wb = openpyxl.load_workbook(path, read_only=True, data_only=True)
@@ -99,6 +128,7 @@ def extract(source, outdir=None):
     if ext == ".docx": r = extract_docx(str(p), outdir)
     elif ext == ".pptx": r = extract_pptx(str(p), outdir)
     elif ext in (".xlsx", ".xlsm"): r = extract_xlsx(str(p), outdir)
+    elif ext == ".pdf": r = extract_pdf(str(p), outdir)
     else: raise ValueError("unsupported: " + ext)
     r["source"] = str(p)
     r["outdir"] = outdir
