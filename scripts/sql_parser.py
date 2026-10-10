@@ -1,62 +1,70 @@
-﻿#!/usr/bin/env python3
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """sql_parser.py - Extract rows from MySQL INSERT VALUE scripts"""
-import sys, json
+import sys, json, re, re, re, re
 
 def parse_sql_insert(path, max_rows=5000):
-    import io
-    # Try until we find the right encoding
+    """Extract data rows from SQL INSERT scripts (supports bulk multi-tuple INSERT)"""
     content = None
     for enc in ['utf-8-sig', 'utf-8', 'latin-1', 'gbk', 'gb18030']:
         try:
-            if path.endswith('.gz'):
-                import gzip
-                f = gzip.open(path, 'rt', encoding=enc, errors='replace')
-            else:
-                f = open(path, 'r', encoding=enc, errors='replace')
+            opener = gzip.open if path.endswith('.gz') else open
+            f = opener(path, 'rt', encoding=enc, errors='replace')
             content = f.read()
             f.close()
             break
-        except: pass
+        except Exception:
+            try: f.close()
+            except Exception: pass
     if content is None:
-        return {'status':'error','msg':'cannot decode'}
-    
+        return {'status': 'error', 'msg': 'cannot decode'}
+
     total_inserts = content.upper().count('INSERT')
-    pos = content.find('INSERT INTO')
-    count = 0; rows = 0; samples = []
-    while pos >= 0 and rows < max_rows:
-        vs = content.find('VALUES', pos)
-        if vs < 0: break
-        vp = content.find('(', vs)
-        if vp < 0: break
-        depth, j = 1, vp + 1
-        while j < len(content) and depth > 0:
-            c = content[j]
-            if c == '(' and (j==0 or content[j-1]!='\\'): depth += 1
-            elif c == ')' and (j==0 or content[j-1]!='\\'): depth -= 1
-            j += 1
-        if depth == 0:
-            row_s = content[vp+1:j-1]
-            fields = _parse_row(row_s)
-            if fields:
-                rows += 1
-                samples.append(fields)
-        pos = content.find('INSERT INTO', j)
-        count += 1
-    
-    cols = ['c'+str(i+1) for i in range(len(samples[0]))] if samples else []
-    mb = round(len(content.encode('utf-8')) / 1024 / 1024, 2)
-    return {
-        'status': 'ok',
-        'path': path,
-        'total_inserts': total_inserts,
-        'rows_parsed': rows,
-        'num_fields': len(cols),
-        'columns': cols,
-        'file_size_mb': mb,
-        'is_large': total_inserts > 100000,
-        'preview': [[str(v)[:40] for v in r[:10]] for r in samples[:10]]
-    }
+    rows = 0; samples = []; per_table = {}
+    Qc = "'"; BSc = '\\'
+    pos = 0
+    while True:
+        ii = content.find('INSERT INTO', pos)
+        if ii < 0: break
+        tbl_m = re.search(r'INSERT INTO\s+`?(\w+)`?', content[ii:ii+200], re.I)
+        tbl = tbl_m.group(1) if tbl_m else "?"
+        vs = content.find('VALUES', ii)
+        if vs < 0: pos = ii + 10; continue
+        end = content.find(';', vs)
+        if end < 0: end = len(content)
+        block = content[vs:end]
+        in_str = False; esc = False; depth = 0; start = -1; k = 0
+        while k < len(block):
+            ch = block[k]
+            if in_str:
+                if esc: esc = False
+                elif ch == BSc: esc = True
+                elif ch == Qc: in_str = False
+            else:
+                if ch == Qc: in_str = True
+                elif ch == '(':
+                    if depth == 0: start = k
+                    depth += 1
+                elif ch == ')':
+                    depth -= 1
+                    if depth == 0 and start >= 0:
+                        fields = _parse_row(block[start+1:k])
+                        if fields:
+                            rows += 1
+                            per_table[tbl] = per_table.get(tbl, 0) + 1
+                            if rows <= max_rows: samples.append(fields)
+                        start = -1
+                elif ch == ';' and depth == 0:
+                    break
+            k += 1
+        pos = end
+    cols = ['c' + str(i+1) for i in range(len(samples[0]))] if samples else []
+    mb = round(len(content.encode('utf-8')) / 1048576, 2)
+    return {'status': 'ok', 'path': path, 'total_inserts': total_inserts,
+            'rows_parsed': rows, 'num_fields': len(cols), 'columns': cols,
+            'per_table': per_table, 'file_size_mb': mb,
+            'is_large': total_inserts > 100000,
+            'preview': [[str(v)[:40] for v in r[:10]] for r in samples[:10]]}
 
 def _parse_row(s):
     fields = []; i = 0; n = len(s)

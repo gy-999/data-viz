@@ -91,6 +91,12 @@ COL_CN = {
 }
 # 字段中文业务名补录注册表（单一事实源；contracts 闸门从这里导入）
 FIELD_CN = {
+    # ---- G2/G3 补充字典 ----
+    "genre": "类型", "n": "评分数", "avg": "均分",
+    "ident": "标识", "type": "类型", "name2": "名称", "continent": "大洲",
+    "iso_country": "国家", "iso_region": "区域", "municipality": "城市",
+    "coordinates": "坐标", "elevation_ft": "海拔", "icao_code": "ICAO码",
+    "iata_code": "IATA码", "gps_code": "GPS码", "local_code": "本地码",
     # ---- WELL 数据集字段字典 v2（官方中文名来自《4个哑资源视图1204》）----
     "ID": "标识", "NAME": "名称", "CODE": "编码", "NFCID": "NFC标签",
     "LIFECYCLESTATUS": "生命周期状态", "VIRTUALCATEGORY": "显示类别",
