@@ -91,6 +91,29 @@ COL_CN = {
 }
 # 字段中文业务名补录注册表（单一事实源；contracts 闸门从这里导入）
 FIELD_CN = {
+    # ---- WELL 数据集字段字典 v2（官方中文名来自《4个哑资源视图1204》）----
+    "ID": "标识", "NAME": "名称", "CODE": "编码", "NFCID": "NFC标签",
+    "LIFECYCLESTATUS": "生命周期状态", "VIRTUALCATEGORY": "显示类别",
+    "PROPERTYCATEGORY": "产权性质", "PROVINCE_ID": "所属省", "COUNTY_ID": "所属区县",
+    "PREFECTURE_ID": "所属地市", "ONLINEDATE": "入网时间", "LONGITUDE": "经度",
+    "LATITUDE": "纬度", "CREATEDATE": "创建时间", "CITY_P": "地市(解析)", "COUNTY_P": "区县(解析)",
+    "lifecyclestatus": "生命周期状态", "virtualcategory": "显示类别",
+    "propertycategory": "产权性质", "city": "地市(解析)", "county": "区县(解析)",
+    "forbidden": "是否标记禁用", "firstwell": "是否局前井",
+    "fld": "字段", "val": "码值", "meaning": "含义", "basis": "依据",
+    "cnt": "数量", "yr": "入网年份", "total_wells": "管线井总数",
+    "zaiwang_cnt": "在网数量", "zaiwang_pct": "在网占比",
+    "county_parsed_cnt": "覆盖区县数", "has_location": "含坐标井数", "city_parsed_cnt": "覆盖地市数",
+
+    # ---- ODF 补充字典 ----
+    "EQUIPMENTTYPE": "设备类型", "equipmenttype": "设备类型",
+    "total_cnt": "资源总数", "city_cnt": "覆盖地市数",
+    "nfcstat": "NFC标签状态", "county_cnt": "覆盖区县数", "has_coord": "含坐标数",
+
+    # ---- 电影库补充字典 ----
+    "movieid": "电影ID", "userid": "用户ID", "genre_cn": "类型", "yr2": "年份", "year": "年份",
+    "total_films": "电影总数", "rating_cnt": "评分数", "genre_cnt": "类型数",
+    "valid_tags": "有效标签数", "no_year": "无年份影片数", "score": "评分",
 
     # ---- WELL 数据集字段字典 v2（官方中文名来自《4个哑资源视图1204》）----
     "ID": "标识", "NAME": "名称", "CODE": "编码", "NFCID": "NFC标签",
