@@ -139,6 +139,7 @@ def scan_directory(p, t0):
             elif name.endswith('.sql'): t='sql_script'
             elif name.endswith(('.csv.gz','.csv.gzip')): t='gz_csv'
             elif name.endswith('.json'): t='json'
+            elif name in MEDIA_EXT or name.split('.')[-1] in {e[1:] for e in MEDIA_EXT}: t = MEDIA_EXT.get(name, MEDIA_EXT.get('.' + name.rsplit('.',1)[-1], 'other'))
             else: t='other'
             if t != 'other':
                 entries.append({'type':t,'name':f.name,'mb':round(f.stat().st_size/1024/1024,2)})
@@ -159,4 +160,12 @@ if __name__ == '__main__':
     else:
         r = {'multi':{s:scan(s) for s in sources},'count':len(sources)}
     print(json.dumps(r, ensure_ascii=False, default=str, indent=2))
+MEDIA_EXT = {}
+for e in ['.png','.jpg','.jpeg','.gif','.bmp','.webp','.tif','.tiff','.heic']: MEDIA_EXT[e] = 'image'
+for e in ['.mp4','.avi','.mov','.mkv','.wmv','.flv','.m4v','.ts','.webm']: MEDIA_EXT[e] = 'video'
+for e in ['.mp3','.wav','.flac','.aac','.m4a','.ogg','.wma']: MEDIA_EXT[e] = 'audio'
+for e in ['.zip','.7z','.rar','.tar']: MEDIA_EXT[e] = 'archive'
+for e in ['.docx','.pptx','.pdf','.doc','.xls']: MEDIA_EXT[e] = 'document'
+for e in ['.log','.txt','.md']: MEDIA_EXT[e] = 'textfile'
+
 
