@@ -1,82 +1,94 @@
-# data-viz · 数据可视化统计整理 Skill
+---
+name: data-viz
+description: "帮我看看这些数据" → AI 亲自当分析师。丢给它一份数据（CSV/TSV/GZ压缩/Excel/SQL脚本/MySQL/JSON/图片/视频/Word/PPT/PDF），它直接读数据、边看边推理、拿真实数据向你提问、给出结论与洞察；你拍板口径之后才写代码，且代码只用于可视化看板与交付报告（Word/Excel/Markdown + 数据总结报告）。探源六项、码值字典自动翻译、口径卡、生成闸门、媒体资产盘点、重复图检测一应俱全。13 组真实数据全 PASS，最大 175 万行。触发词：数据分析、统计、可视化、帮我看看、数据整理、出报告、生成看板、数据质量、口径、资产盘点。不触发：建数仓/建模/代码审查。
+---
 
-**丢给它一份数据（Excel / CSV / GZ / SQL 脚本 / MySQL / 目录），它还你一套可转发的完整交付：数据质量报告 + 中文可读交互看板 + Word / Excel / Markdown 报告 + 口径卡，全程有闸门把关、数字可追溯。**
+# data-viz · 数据分析 Agent Skill
 
-**Give it any data source, it returns a shareable deliverable set: data-quality report + interactive Chinese-readable dashboard + Word/Excel/Markdown report + metric caliber cards — gated, reproducible, traceable.**
+**AI 亲自当分析师：丢给它一份数据，它还你一套能直接转发的东西。**
 
-> 已在 3 个真实数据集上端到端验证：MySQL 213 表 / 140 万行 CSV.GZ / 300MB SQL 脚本 / 4 万行 ODF。
+**Give it any data — it reads, reasons, questions you with real numbers, and returns a shareable deliverable set: interactive dashboard + summary report (Word) + caliber cards, all gated.**
+
+> 已在 **13 组真实与公开数据**上端到端验证：从 304 行的定向脏数据到 **175 万行**业务分片，7 种输入通路全部通过，测试逼出并修复 4 个真实缺陷。
 
 ## 它做了什么 | What It Does
 
-1. **扫描与探源** — 自动识别 6 种数据源，探源六项（空值率含空串、枚举越界、重复 ID、时间悬崖、孤儿外键、跨表重名），实测抓出过官方字典之外的脏码值
-   **Scan & profile** — 6 source types, 6 mandatory quality checks (empty-string nulls, enum overflow, dup IDs, time cliffs…)
-2. **口径拍板** — 每个指标一张口径卡：分子/分母/只算什么/不算什么，AI 拿真实数据举例确认，消灭“同名不同数”
-   **Caliber cards** — numerator/denominator per metric, confirmed against real data
-3. **中文可读看板** — 单文件离线 HTML：五段式 KPI 卡（口径悬停）、饼/条/表等组件、码值字典表、L2→L3 下钻到逐条明细，图例全部翻译成业务中文，普通人看得懂
-   **Readable dashboard** — single-file offline HTML, five-section KPI cards with caliber hover, code-value dictionary, drill-down to raw rows
-4. **三件套报告** — Word（可微信直发）+ Excel（原生图表）+ Markdown，外加 PNG 静态图
-   **Report trio** — Word / Excel / Markdown plus PNG charts
-5. **闸门把关** — 18 项生成硬校验 + A/B/C 回归检查，展示字段必须有中文业务名，不通过拒绝出图
-   **Generation gates** — 18 hard checks + A/B/C regression, refuse to render without Chinese labels
+1. **AI 亲自当分析师** — 直接读数据、边看边推理、拿真实数据向你提问（"这 48.6% 没支付的算分母吗？"）。不是跑预写脚本——脚本只在大数据算不动时临时写，用完即弃。
+   **AI is the analyst** — reads data directly, reasons interactively, questions you with real numbers. Scripts are throwaway, written only when data is too big to eyeball.
+2. **探源六项 + 码值自动翻译** — 空值率（含空串）、枚举越界、重复行、时间悬崖、孤儿外键、跨表重名。图例里的 1/2/3 码值自动从官方字典翻译成业务中文（实测抓出官方字典之外的"码7"越界）。
+   **Profiling** — nulls (incl. empty strings), enum overflow, dups, time cliffs, orphan FKs; code values auto-translated from official dictionaries.
+3. **口径拍板** — 每个指标一张口径卡：分子/分母/只算什么/不算什么，AI 拿真实数据举例确认，业务方签名生效——消灭"同名不同数"。
+   **Caliber cards** — numerator/denominator per metric, confirmed against real data before implementation.
+4. **中文可读交互看板** — 单文件离线 HTML：五段式 KPI 卡（口径悬停可见分子分母）、17 种图表、24 列自动布局、L2→L3 下钻到逐条明细、码值字典表、生成闸门（展示字段没有中文名就拒绝渲染）。
+   **Readable dashboard** — single-file offline HTML with 5-section KPI cards, caliber hover, L2/L3 drill-down, code-value dictionary table, generation gates.
+5. **数据总结报告必产** — 每份分析以 Word 总结报告收尾（AI 写叙事与结论，代码只排版）：概览 → 质量 → 指标 → 图表 → 洞察 → 建议 → 转发说明。没有总结文档的分析不算完成。
+   **Summary report mandatory** — every analysis ends with a Word narrative report; no summary, not done.
+6. **媒体与文档盘点** — 图片资产画像（EXIF/重复图检测——实测在 3,749 张中找出 1,390 张重复）、Word/PPT/PDF 表格抽取→CSV（宏文档伪装自动修复）、视频/压缩包文件级盘点。
+   **Media & docs** — image profiling w/ duplicate detection (1,390 dups found in the wild), Office table extraction (macro-disguised docx auto-repaired).
+
+## 实测成绩单 | Verified on 13 Datasets
+
+| 数据集 | 规模 | 结果 |
+|---|---|---|
+| ZJsftp WELL（业务 GZ 分片）| 1,409,711×130 | ✅ 看板：码值自动翻译、下钻、闸门全绿 |
+| ZJsftp POLE（业务 GZ 分片）| **1,750,619×122** | ✅ 最大实测；官方第 7 码「空载」字典驱动翻译 |
+| ZJsftp OCCP | 141,158×351 | ✅ 12 组件看板 |
+| sa_label.sql | 300MB / 1,448,752 INSERT | ✅ 自研解析器 |
+| MovieLens 四表 | 100,004 评分 | ✅ 多源合并+关联 |
+| MySQL cqcc 直连 | 213 表 / 168 万行 | ✅ 全库扫描 |
+| 定向脏数据（GBK）| 304 行 | ✅ 探源六项命中 **6/6** |
+| wuyuan 文档集 | 18.5MB 宏docx 等 | ✅ **337 张表格抽出**、宏伪装自动修复 |
+| JAVA 资料库 | 5,375 文件 / 3,749 图片 | ✅ **发现 1,390 张重复图** |
 
 ## 快速开始 | Quick Start
 
-把整个文件夹复制到你的 AI 助手 skills 目录（Claude Code / DSH 等），然后对话：
-
-Copy this folder into your agent's skills directory, then just say:
+把文件夹复制到 AI 助手的 skills 目录（DSH：`~/.dsh/skills/`；Claude Code：`~/.claude/skills/`），然后直接对话：
 
 ```text
-你："帮我看一下 D:/数据 里有什么数据"
-你："分析一下 MySQL 的 cqcc 库，sa_label 表有什么问题"
-你："统计 sa_label 的状态分布并出图，我要发给别人看"
+你："帮我看看这些数据"                        → AI 直读 + 探源 + 提问
+你："分析这份 MySQL 表，出个能发群里的看板"    → 口径拍板 → 看板 + 总结报告
+你："盘点一下这个文件夹，有没有重复图片"       → 资产画像 + 重复清单
 ```
 
-依赖 | Dependencies：pandas / openpyxl / XlsxWriter / matplotlib / pymysql（pip install pymysql matplotlib）、ECharts 已内嵌离线包。
+依赖：pandas / openpyxl / XlsxWriter / matplotlib / pymysql / pdfplumber（pip 安装）；ECharts 已内嵌离线包。
+
+## 量级自适应 | Scale-Adaptive
+
+| 量级 | AI 怎么做 |
+|---|---|
+| < 1 万行 | 直接读全量，推理为主，几乎不写代码 |
+| 1 万~50 万行 | 交互式 pandas 片段，用完即弃 |
+| > 50 万行 / GB 级 | 一次性分块脚本 + 抽样预览征确认 |
 
 ## 输出全览 | Outputs
 
-| 输出物 | 说明 |
+| 输出 | 说明 |
 |---|---|
-| 数据质量报告 | 探源六项：空值率(含空串)/枚举/重复/时间悬崖/孤儿外键/跨表重名 |
-| 源版整理 source-cleaned/ | 清洗后结构化副本（表头=英文名+官方中文名）|
-| warehouse.db | SQLite 数仓：明细抽样 + ADS 聚合表 |
-| 口径卡 caliber-cards.md | 每个指标的分子/分母/只算/不算，业务方签名栏 |
-| 交互看板 dashboard.html | 单文件离线；KPI 口径悬停；L2 维度分解 → L3 逐条明细；码值字典 |
-| Word/Excel/Markdown 报告 | 三件套 + PNG 静态图，附“转发说明”教收件人使用 |
-
-## 12 步流程 | Pipeline
-
-```text
-确认来源 → 全源发现 → 扫描预览 → 探源六项 → 源版整理 → 业务语义
-  → 口径拍板(4步) → 图表选型 → 自动分析 → 三件套输出 → 验证闸门 → 交付九问
-```
+| 交互看板 dashboard.html | 单文件离线；KPI 口径悬停；L2→L3 下钻；码值字典表 |
+| 数据总结报告.docx | 概览/质量/指标/图表/洞察/建议/转发说明（**必产**）|
+| 口径卡 caliber-cards.md | 分子/分母/只算/不算/业务方签名 |
+| 源版整理 source-cleaned/ | 清洗后结构化副本 |
+| 质量闸门记录 | dashboard_check A/B/C + 18 项生成硬校验 |
 
 ## 目录结构 | Layout
 
 ```text
 data-viz/
-├── SKILL.md                 # 触发规则 + 12 步框架 + 3 原则 + 安全约束
-├── references/              # 图表选型 / 数据质量规则 / 性能策略 / 报告模板…
+├── SKILL.md                 # 触发 + AI 分析方式 + 探源清单 + 口径拍板 + 场景策略
+├── references/              # 数据源策略 / 图表选型 / 质量规则 / 性能策略 / 报告模板
 ├── assets/                  # 口径卡模板 / 九问检查单
-├── scripts/                 # 扫描 / SQL解析 / 分析 / 渲染引擎 / 闸门
+├── scripts/                 # 工具箱（media_probe / doc_extract / sql_parser / 渲染引擎 / 闸门）
 │   └── vendor/echarts.min.js
-├── examples/                # 端到端案例管线（WELL / ODF / 快速上手）
+├── examples/                # 端到端案例（WELL 175万 / ODF 14万）
 └── evals/evals.json         # 测试用例
 ```
 
-## 设计原则 | Principles
-
-- **先看原始数据**：分析前先呈现数据本来的样子
-- **输出可追溯**：每个数字能回溯到来源、清洗步骤与口径卡
-- **数据量自适应**：<10 万行全量；10-100 万行分块统计+抽样绘图；GB 级先抽样预览再全量
-- **安全第一**：源库只读、密码不进上下文、探完断开、聚合展示
-
 ## 致谢 | Credits
 
-- 看板渲染引擎（render_universal_dashboard.py / _dashboard_template.html / dashboard_check.py / dashboard_contracts.py / echarts.min.js）来自 **[dsh-dashboard-ai](https://github.com/33Wade333/dsh-dashboard-ai)**（MIT），本项目按其设计系统产出看板并补充了数据字典闸门用法；
+- 看板渲染引擎与设计系统来自 **[dsh-dashboard-ai](https://github.com/33Wade333/dsh-dashboard-ai)**（MIT）——17 组件、24 列网格、生成闸门直接复用其成熟实现；
 - 口径卡与探源方法论参考 **[data-model-builder](https://github.com/33Wade333/data-model-builder)**（MIT）；
-- 感谢两个项目的作者，本 skill 是“语义层建模 → 口径统一 → 一键出看板”链路中**面向已有数据快速体检与交付**的一环。
+- 本 skill 是两者链路（语义建模 → 口径统一 → 一键看板）中的**快速数据体检与交付**一环。
 
-## License | 许可证
+## License
 
-MIT。第三方组件许可见 NOTICE。
+MIT（第三方组件见 NOTICE.md）
