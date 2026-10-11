@@ -9,15 +9,3 @@ __pycache__/
 *.zip
 .DS_Store
 view_dict.json
-
-# ---- 例外：示范数据集与分享包（公开示例数据，非业务数据）----
-# 这些是 _datasets/ 下的演示产物，用于让使用者直接打开看效果；
-# 业务数据与运行产物仍由上面的规则拦住（src/ 与其他目录不受影响）。
-!_datasets/
-!_datasets/09_dashboards/**
-!_datasets/11_share_ready/**
-!**/09_dashboards/**/*.html
-!**/11_share_ready/**/*.html
-!**/09_dashboards/**/warehouse.db
-!**/11_share_ready/**/warehouse.db
-!_datasets/**/*.zip
