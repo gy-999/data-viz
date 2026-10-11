@@ -438,6 +438,136 @@ const RENDERERS = {
     t += "</table></div>";
     cell.innerHTML = t;
   },
+  box(c, cell) {
+    const d = c.data || {};
+    const gs = d.groups || [];
+    if (!gs.length) { cell.innerHTML = `<div class="phead2"><div class="ptitle">${c.title||"分布对比"}</div></div><div style="padding:14px;color:#8f959e;font-size:12px">无足够数据（每组至少 2 个数值）</div>`; return; }
+    cell.innerHTML = `<div class="phead2"><div class="ptitle">${c.title || (d.y_label||"")+" 分布"+(d.x_label?" · 按"+d.x_label:"")}</div></div><div class="chart" id="ch_${c.id}"></div>`;
+    const ch = echarts.init(document.getElementById("ch_"+c.id));
+    const mk = (x, y, w, h, col, op) => ({type:"rect", shape:{x:x, y:y, width:w, height:h}, style:{fill:col, opacity:op==null?0.16:op, stroke:col, lineWidth:1.4}});
+    const cats = gs.map(g => g.name), k = gs[0] ? gs[0].n : 0;
+    let lo = Infinity, hi = -Infinity;
+    gs.forEach(g => { lo = Math.min(lo, g.min); hi = Math.max(hi, g.max); });
+    (d.outliers_pts||[]).forEach(p => { lo = Math.min(lo, p.v); hi = Math.max(hi, p.v); });
+    if (!isFinite(lo) || !isFinite(hi)) { lo = 0; hi = 1; }
+    const pad = (hi-lo)*0.12 || 1; lo -= pad; hi += pad;
+    const sy = v => (hi - v) / ((hi - lo) || 1);
+    const H = 190, bw = Math.max(14, Math.min(46, 240/Math.max(cats.length,1)));
+    const out = [];
+    gs.forEach((g, i) => {
+      const x = i + 0.5;
+      out.push({type:"line", shape:{x1:x, y1:sy(g.max), x2:x, y2:sy(g.q3)}, style:{stroke:"#8f959e", lineWidth:1.2}});
+      out.push({type:"line", shape:{x1:x, y1:sy(g.q1), x2:x, y2:sy(g.min)}, style:{stroke:"#8f959e", lineWidth:1.2}});
+      out.push({type:"line", shape:{x1:x-bw/2/100, y1:sy(g.max), x2:x+bw/2/100, y2:sy(g.max)}, style:{stroke:"#8f959e", lineWidth:1.2}});
+      out.push({type:"line", shape:{x1:x-bw/2/100, y1:sy(g.min), x2:x+bw/2/100, y2:sy(g.min)}, style:{stroke:"#8f959e", lineWidth:1.2}});
+      out.push(mk(x-bw/2/100, sy(g.q3), bw/100, Math.abs(sy(g.q3)-sy(g.q1)), "#3370F4", 0.18));
+      out.push({type:"line", shape:{x1:x-bw/2/100, y1:sy(g.median), x2:x+bw/2/100, y2:sy(g.median)}, style:{stroke:"#1456f0", lineWidth:2.2}});
+      out.push({type:"circle", shape:{cx:x, cy:sy(g.mean), r:50}, style:{fill:"#FF811A", opacity:0.95}});
+    });
+    const outPts = (d.outliers_pts||[]).map(p => [cats.indexOf(p.g)+0.5, sy(p.v)]).filter(p => p[0] > 0);
+    ch.setOption({...EC_BASE, tooltip:{...EC_BASE.tooltip, trigger:"item",
+        formatter: p => (p.seriesType === "scatter")
+          ? `离群点 实际值 ${(d.outliers_pts||[])[p.dataIndex] ? (d.outliers_pts||[])[p.dataIndex].v : ""}`
+          : (gs[p.dataIndex] ? `${cats[p.dataIndex]}<br/>中位 ${fmt(gs[p.dataIndex].median)}<br/>均值 ${fmt(gs[p.dataIndex].mean)}<br/>Q1 ${fmt(gs[p.dataIndex].q1)} · Q3 ${fmt(gs[p.dataIndex].q3)}<br/>n=${gs[p.dataIndex].n} · 离群 ${gs[p.dataIndex].outliers}` : "")},
+      grid:{left:8, right:12, top:28, bottom:8, containLabel:true},
+      xAxis:{type:"category", data:cats, axisLabel:{color:"#8f959e", fontSize:10, rotate:cats.length>6?22:0}},
+      yAxis:{type:"value", min:0, max:1, axisLabel:{show:false}, splitLine:{show:false}},
+      series:[
+        {type:"custom", renderItem:(p, api) => ({type:"group", children: out}), data:cats.map((_,i)=>i), silent:true, z:1,
+         encode:{x:0, y:0}},
+        {type:"scatter", data:outPts, symbolSize:4, itemStyle:{color:"#F53F3F", opacity:0.55}, z:3, encode:{x:0, y:1}}
+      ]});
+    charts.push(ch);
+  },
+  qq(c, cell) {
+    const d = c.data || {};
+    cell.innerHTML = `<div class="phead2"><div class="ptitle">${c.title || (d.y_label||"")+" 正态 Q-Q 图"}</div></div><div class="chart" id="ch_${c.id}"></div>`;
+    const ch = echarts.init(document.getElementById("ch_"+c.id));
+    ch.setOption({...EC_BASE,
+      grid:{left:8, right:16, top:28, bottom:8, containLabel:true},
+      xAxis:{type:"value", name:d.x_label||"理论分位数", nameGap:14, nameTextStyle:{color:"#8f959e", fontSize:11, align:"left"}},
+      yAxis:{...ecAY, name:d.y_label||"", nameGap:14, nameTextStyle:{color:"#8f959e", fontSize:11, align:"right"}},
+      series:[
+        {type:"line", data:d.ref||[], symbol:"none", lineStyle:{width:1.4, type:"dashed", color:"#FF811A"}, z:1},
+        {type:"scatter", data:d.points||[], symbolSize:4, itemStyle:{color:"#3370F4", opacity:0.7}, z:2}
+      ]});
+    charts.push(ch);
+  },
+  pareto(c, cell) {
+    const d = c.data || {};
+    cell.innerHTML = `<div class="phead2"><div class="ptitle">${c.title||"帕累托分析"}</div></div><div class="chart" id="ch_${c.id}"></div>`;
+    const ch = echarts.init(document.getElementById("ch_"+c.id));
+    ch.setOption({...EC_BASE, tooltip:{...EC_BASE.tooltip, trigger:"axis"},
+      grid:{left:8, right:8, top:34, bottom:56, containLabel:true},
+      xAxis:{type:"category", data:d.labels||[], axisLabel:{rotate:28, fontSize:9.5, color:"#8f959e"}},
+      yAxis:[{...ecAY}, {type:"value", max:100, name:"累计%", nameTextStyle:{color:"#8f959e", fontSize:10},
+              axisLabel:{color:"#8f959e", fontSize:9.5, formatter:"{value}%"}, splitLine:{show:false}}],
+      series:[
+        {name:"数量", type:"bar", data:d.values||[], barMaxWidth:30,
+         itemStyle:{borderRadius:[3,3,0,0], color:{type:"linear", x:0, y:0, x2:0, y2:1,
+           colorStops:[{offset:0, color:"#5B8DFF"}, {offset:1, color:"#3370F4"}]}}},
+        {name:"累计占比", type:"line", yAxisIndex:1, data:d.cum||[], smooth:false, symbol:"circle", symbolSize:5,
+         lineStyle:{width:2, color:"#FF811A"}, itemStyle:{color:"#FF811A"},
+         markLine:{silent:true, symbol:"none", data:[{yAxis:80, lineStyle:{type:"dashed", color:"#F53F3F", width:1.2},
+           label:{formatter:"80% 线", color:"#F53F3F", fontSize:10}}]}}
+      ]});
+    charts.push(ch);
+  },
+  missing(c, cell) {
+    const d = c.data || {};
+    const sub = d.group_col ? `按 ${d.group_col} 分组 · 上下两图：左为整体缺失率 Top 字段，右为分组缺失率` : "整体缺失率 Top 字段";
+    cell.innerHTML = `<div class="phead2"><div class="ptitle">${c.title||"缺失值画像"}</div><div style="font-size:10.5px;color:#aeb4bd;margin-top:2px">${sub}</div></div><div class="chart" id="ch_${c.id}"></div>`;
+    const ch = echarts.init(document.getElementById("ch_"+c.id));
+    const ov = (d.overall||[]).slice(0, 12);
+    const gr = (d.labels||[]).map((l,i)=>({l:l, v:(d.rates||[])[i]})).slice(0,12);
+    ch.setOption({...EC_BASE, tooltip:{...EC_BASE.tooltip, trigger:"axis", axisPointer:{type:"shadow"},
+        formatter: p => p[0].name + "<br/>缺失率 " + fmt(p[0].value) + "%"},
+      grid:[{left:8, right:"54%", top:22, bottom:6, containLabel:true}, {left:"56%", right:8, top:22, bottom:6, containLabel:true}],
+      xAxis:[{type:"value", gridIndex:0, axisLabel:{color:"#8f959e", fontSize:9.5, formatter:"{value}%"}, splitLine:{show:false}},
+             {type:"value", gridIndex:1, axisLabel:{color:"#8f959e", fontSize:9.5, formatter:"{value}%"}, splitLine:{show:false}}],
+      yAxis:[{type:"category", gridIndex:0, data:ov.map(o=>o.key).reverse(), inverse:true, axisLabel:{color:"#646a73", fontSize:10}},
+             {type:"category", gridIndex:1, data:gr.map(o=>o.l).reverse(), inverse:true, axisLabel:{color:"#646a73", fontSize:10}}],
+      series:[
+        {name:"字段缺失率", type:"bar", xAxisIndex:0, yAxisIndex:0, data:ov.map(o=>o.rate).reverse(), barMaxWidth:14,
+         itemStyle:{borderRadius:[0,3,3,0], color:"#F53F3F"}, label:{show:true, position:"right", fontSize:9.5, color:"#cb2634", formatter:p=>fmt(p.value)+"%"}},
+        {name:"分组缺失率", type:"bar", xAxisIndex:1, yAxisIndex:1, data:gr.map(o=>o.v).reverse(), barMaxWidth:14,
+         itemStyle:{borderRadius:[0,3,3,0], color:"#FF811A"}, label:{show:true, position:"right", fontSize:9.5, color:"#c26100", formatter:p=>fmt(p.value)+"%"}}
+      ]});
+    charts.push(ch);
+  },
+  corr(c, cell) {
+    const d = c.data || {};
+    const labs = d.labels || [], mtx = d.matrix || [];
+    const cells = [];
+    mtx.forEach((row, i) => row.forEach((v, j) => cells.push([j, i, (v == null ? "-" : v)])));
+    cell.innerHTML = `<div class="phead2"><div class="ptitle">${c.title || (d.method==="spearman"?"斯皮尔曼":"皮尔逊")+" 相关矩阵"}</div><div style="font-size:10.5px;color:#aeb4bd;margin-top:2px">样本 n=${d.n==null?"—":d.n} · 颜色越深相关性越强（红正蓝负）</div></div><div class="chart" id="ch_${c.id}"></div>`;
+    const ch = echarts.init(document.getElementById("ch_"+c.id));
+    ch.setOption({...EC_BASE,
+      grid:{left:8, right:8, top:26, bottom:8, containLabel:true},
+      xAxis:{type:"category", data:labs, axisLabel:{rotate:labs.length>5?32:0, fontSize:9.5, color:"#646a73"}},
+      yAxis:{...ecAY, type:"category", data:labs, inverse:true, axisLabel:{fontSize:9.5, color:"#646a73"}},
+      visualMap:{min:-1, max:1, calculable:false, orient:"horizontal", left:"center", bottom:0, itemWidth:10, itemHeight:70,
+        inRange:{color:["#1456f0", "#9dbbff", "#ffffff", "#ffb4a3", "#f53f3f"]}, textStyle:{color:"#8f959e", fontSize:10}},
+      series:[{type:"heatmap", data:cells, label:{show:true, fontSize:9,
+        formatter:p=> (typeof p.value[2] === "number" ? p.value[2].toFixed(2) : "-")},
+        itemStyle:{borderColor:"#fff", borderWidth:1}}]});
+    charts.push(ch);
+  },
+  regress(c, cell) {
+    const d = c.data || {};
+    cell.innerHTML = `<div class="phead2"><div class="ptitle">${c.title || "回归分析"}</div><div style="font-size:10.5px;color:#aeb4bd;margin-top:2px">${
+      d.r2==null ? "样本不足" : `y = ${d.slope}·x + ${d.intercept} · R²=${d.r2} · n=${d.n}`}</div></div><div class="chart" id="ch_${c.id}"></div>`;
+    const ch = echarts.init(document.getElementById("ch_"+c.id));
+    ch.setOption({...EC_BASE,
+      grid:{left:8, right:14, top:26, bottom:8, containLabel:true},
+      xAxis:{type:"value", name:d.x_label||"", nameGap:14, nameTextStyle:{color:"#8f959e", fontSize:11, align:"left"}},
+      yAxis:{...ecAY, name:d.y_label||"", nameGap:14, nameTextStyle:{color:"#8f959e", fontSize:11, align:"right"}},
+      series:[
+        {type:"line", data:d.fit||[], symbol:"none", lineStyle:{width:2, color:"#F53F3F"}, z:3},
+        {type:"scatter", data:d.points||[], symbolSize:5, itemStyle:{color:"#3370F4", opacity:0.45}, z:2}
+      ]});
+    charts.push(ch);
+  },
   histogram(c, cell) {
     const d = c.data;
     cell.innerHTML = `<div class="phead2"><div class="ptitle">${c.title||d.x_label+" 分布"}</div></div><div class="chart" id="ch_${c.id}"></div>`;

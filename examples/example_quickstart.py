@@ -1,7 +1,11 @@
 
 import os, sys, json
-sys.path.insert(0, r'D:\study\NewPeople\data\data-viz\scripts')
-os.chdir(r'D:\study\NewPeople\data\data-viz')
+from pathlib import Path
+
+# 可移植定位：以本文件所在目录为锚点（v3）
+HERE = Path(__file__).resolve().parent
+sys.path.insert(0, str(HERE.parent / "scripts"))
+os.chdir(str(HERE.parent))
 
 from scan_preview import scan
 from auto_analyze import auto_analyze
@@ -34,7 +38,9 @@ print(f"  Caliber suggestions: {len(stats.get('caliber_suggestions', []))}")
 
 # 3. Generate outputs
 print("\n[3/3] Generating reports...")
-out_dir = os.path.join(r'D:\study\NewPeople\data\data-viz', 'output')
+# 可移植定位：以本文件所在目录为锚点，换机器/换用户名都不用改（v3）
+
+out_dir = os.path.join(str(HERE.parent), 'output')
 os.makedirs(out_dir, exist_ok=True)
 
 # XLSX

@@ -1,4 +1,4 @@
-﻿
+
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """runner.py — full data-viz pipeline: scan -> analyze -> report"""
@@ -10,9 +10,9 @@ def run_pipeline(source, name=None, output_dir='output', json_mode=False):
     os.makedirs(output_dir, exist_ok=True)
     
     # STEP 1: Detect
-    from scan_preview import auto_preview
+    from scan_preview import scan
     print(f"[1/5] Scanning: {source}", flush=True)
-    scan_result = auto_preview(source)
+    scan_result = scan(source)
     print(f"  Type: {scan_result.get('source_type',scan_result.get('type','?'))}", flush=True)
     print(f"  Status: {scan_result.get('status','?')}", flush=True)
     

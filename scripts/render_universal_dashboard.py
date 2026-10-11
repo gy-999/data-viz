@@ -35,7 +35,37 @@ TYPE_DEFAULTS = {
     "text": (24, 2), "heading": (24, 1),
     "area_stack": (16, 6), "scatter": (12, 6), "funnel": (16, 6), "bullet": (8, 5),
     "waterfall": (16, 7), "sankey": (16, 8), "radar": (8, 7), "gauge": (8, 5),
+    # 统计分析扩展（v4）：箱线图 / 正态QQ / 帕累托 / 缺失值画像 / 相关矩阵 / 回归散点
+    "box": (12, 6), "qq": (12, 6), "pareto": (16, 7),
+    "missing": (12, 6), "corr": (12, 7), "regress": (12, 6),
 }
+
+def _norm_ppf(p):
+    """标准正态分位数（Acklam 有理逼近，绝对误差 < 1.15e-9）——正态Q-Q图用，不引入 scipy 依赖。"""
+    import math as _m
+    if p <= 0.0: return -8.0
+    if p >= 1.0: return 8.0
+    a = [-3.969683028665376e+01, 2.209460984245205e+02, -2.759285104469687e+02,
+         1.383577518672690e+02, -3.066479806614716e+01, 2.506628277459239e+00]
+    b = [-5.447609879822406e+01, 1.615858368580409e+02, -1.556989798598866e+02,
+         6.680131188771972e+01, -1.328068155288572e+01]
+    c = [-7.784894002430293e-03, -3.223964580411365e-01, -2.400758277161838e+00,
+         -2.549732539343734e+00, 4.374664141464968e+00, 2.938163982698783e+00]
+    d = [7.784695709041462e-03, 3.224671290700398e-01, 2.445134137142996e+00, 3.754408661907416e+00]
+    plow, phigh = 0.02425, 1 - 0.02425
+    if p < plow:
+        q_ = (-2 * _m.log(p)) ** 0.5
+        return (((((c[0] * q_ + c[1]) * q_ + c[2]) * q_ + c[3]) * q_ + c[4]) * q_ + c[5]) / \
+               ((((d[0] * q_ + d[1]) * q_ + d[2]) * q_ + d[3]) * q_ + 1)
+    if p > phigh:
+        q_ = (-2 * _m.log(1 - p)) ** 0.5
+        return -(((((c[0] * q_ + c[1]) * q_ + c[2]) * q_ + c[3]) * q_ + c[4]) * q_ + c[5]) / \
+               ((((d[0] * q_ + d[1]) * q_ + d[2]) * q_ + d[3]) * q_ + 1)
+    q_ = p - 0.5
+    r_ = q_ * q_
+    return (((((a[0] * r_ + a[1]) * r_ + a[2]) * r_ + a[3]) * r_ + a[4]) * r_ + a[5]) * q_ / \
+           (((((b[0] * r_ + b[1]) * r_ + b[2]) * r_ + b[3]) * r_ + b[4]) * r_ + 1)
+
 
 def parse_caliber_cards(kal_path):
     cards = []
@@ -91,26 +121,15 @@ COL_CN = {
 }
 # 字段中文业务名补录注册表（单一事实源；contracts 闸门从这里导入）
 FIELD_CN = {
-    # ---- G2/G3 补充字典 ----
-    "genre": "类型", "n": "评分数", "avg": "均分",
-    "ident": "标识", "type": "类型", "name2": "名称", "continent": "大洲",
-    "iso_country": "国家", "iso_region": "区域", "municipality": "城市",
-    "coordinates": "坐标", "elevation_ft": "海拔", "icao_code": "ICAO码",
-    "iata_code": "IATA码", "gps_code": "GPS码", "local_code": "本地码",
-    # ---- WELL 数据集字段字典 v2（官方中文名来自《4个哑资源视图1204》）----
-    "ID": "标识", "NAME": "名称", "CODE": "编码", "NFCID": "NFC标签",
-    "LIFECYCLESTATUS": "生命周期状态", "VIRTUALCATEGORY": "显示类别",
-    "PROPERTYCATEGORY": "产权性质", "PROVINCE_ID": "所属省", "COUNTY_ID": "所属区县",
-    "PREFECTURE_ID": "所属地市", "ONLINEDATE": "入网时间", "LONGITUDE": "经度",
-    "LATITUDE": "纬度", "CREATEDATE": "创建时间", "CITY_P": "地市(解析)", "COUNTY_P": "区县(解析)",
-    "lifecyclestatus": "生命周期状态", "virtualcategory": "显示类别",
-    "propertycategory": "产权性质", "city": "地市(解析)", "county": "区县(解析)",
-    "forbidden": "是否标记禁用", "firstwell": "是否局前井",
-    "fld": "字段", "val": "码值", "meaning": "含义", "basis": "依据",
-    "cnt": "数量", "yr": "入网年份", "total_wells": "管线井总数",
-    "zaiwang_cnt": "在网数量", "zaiwang_pct": "在网占比",
-    "county_parsed_cnt": "覆盖区县数", "has_location": "含坐标井数", "city_parsed_cnt": "覆盖地市数",
-
+    # ---- 演示数据集字典 v3 ----
+    "值": "数值", "单位": "单位", "指标": "指标", "维度": "维度",
+    "销售额合计": "销售额合计", "订单行数": "订单行数", "客户数": "客户数",
+    "亏损订单行数": "亏损订单行数", "月度销售额": "月度销售额", "月份": "月份",
+    "城市": "城市", "省份": "省份", "产品类别": "产品类别", "客户类型": "客户类型",
+    "产品名称": "产品名称", "客户": "客户", "订单号": "订单号", "订单日期": "订单日期",
+    "折扣": "折扣", "折扣档": "折扣档位", "销售额": "销售额", "数量": "数量", "利润": "利润",
+    "行数": "行数", "总数": "总数", "累计占比": "累计占比",
+    # ---- 占位 ----
     # ---- ODF 补充字典 ----
     "EQUIPMENTTYPE": "设备类型", "equipmenttype": "设备类型",
     "total_cnt": "资源总数", "city_cnt": "覆盖地市数",
@@ -325,8 +344,26 @@ def build_data(case_dir, cfg):
     def table_cols(t): return [c[1] for c in conn.execute(f'PRAGMA table_info("{t}")')]
 
     def _agg_table(comp, m):
-        vcol = comp.get("value_col") or (m["source"]["column"] if m else comp.get("metric"))
-        if vcol not in table_cols(comp["table"]): vcol = comp.get("metric")
+        """解析聚合值列（v4 加固）。
+
+        修正的历史缺陷：旧逻辑在「组件自带聚合表」时把 metric 的**ID** 当列名用，
+        于是 metric="sales" + table="ads_province" 会静默生成 vcol="sales"，
+        取到的全是字符串，累计占比/数值全为 0（图表看起来正常但完全错误）。
+        现按 显式 value_col -> 指标源列 -> 指标ID -> 指标名 依次探测真实列名。
+        """
+        cols = table_cols(comp["table"])
+        cands = []
+        if comp.get("value_col"): cands.append(comp["value_col"])
+        if m and (m.get("source") or {}).get("column"):
+            src = m["source"]
+            # 指标源就是本表时最可信；源在别的表时仅作为候选
+            if src.get("table") == comp["table"]: cands.insert(0, src["column"])
+            else: cands.append(src["column"])
+        if comp.get("metric"): cands.append(comp["metric"])
+        if m and m.get("name"): cands.append(m["name"])
+        vcol = next((c for c in cands if c in cols), None)
+        if vcol is None:
+            vcol = next((c for c in cols if c not in ("dim", "维度")), comp.get("metric"))
         filt = f' AND ({comp["filter"]})' if comp.get("filter") else ""
         order = f' ORDER BY {comp["order"]}' if comp.get("order") else " ORDER BY v DESC"
         return vcol, filt, order
@@ -428,6 +465,178 @@ def build_data(case_dir, cfg):
             return {"bins":bins,"counts":counts,"x_label":d.get("label") or col_cn(col)}
         if t == "text": return {"content":d.get("content","")}
         if t == "heading": return {"content":d.get("content","")}
+        # ---------- 统计分析扩展（v4）：箱线图 / 正态QQ / 帕累托 / 缺失值 / 相关矩阵 / 回归 ----------
+        # ---------- 统计分析扩展（v4）：箱线图 / 正态QQ / 帕累托 / 缺失值 / 相关矩阵 / 回归 ----------
+        if t == "box":
+            import statistics as _st
+            dim, vcol, filt = d["dimension"], d["column"], (f' WHERE {d["filter"]}' if d.get("filter") else "")
+            rows = q(conn, f'SELECT "{dim}" AS dm, "{vcol}" AS v FROM "{d["table"]}" '
+                           f'WHERE "{dim}" IS NOT NULL AND "{vcol}" IS NOT NULL{filt}')
+            buckets = {}
+            for r in rows:
+                try: buckets.setdefault(str(r["dm"]), []).append(float(r["v"]))
+                except (TypeError, ValueError): pass
+            groups, outliers_out = [], []
+            for name, vals in buckets.items():
+                if len(vals) < 2: continue
+                vals.sort(); n = len(vals)
+                def _q(p):
+                    pos = (n - 1) * p; lo = int(pos); hi = min(lo + 1, n - 1); frac = pos - lo
+                    return vals[lo] * (1 - frac) + vals[hi] * frac
+                q1, med, q3 = _q(.25), _q(.5), _q(.75); iqr = q3 - q1
+                lo_f, hi_f = q1 - 1.5 * iqr, q3 + 1.5 * iqr
+                inside = [v for v in vals if lo_f <= v <= hi_f]
+                outs = [v for v in vals if v < lo_f or v > hi_f]
+                mean = sum(vals) / n
+                groups.append({"name": name, "min": round(min(inside), 6), "q1": round(q1, 6),
+                               "median": round(med, 6), "q3": round(q3, 6), "max": round(max(inside), 6),
+                               "n": n, "outliers": len(outs),
+                               "mean": round(mean, 6), "std": round(_st.pstdev(vals), 6),
+                               "cv": round(_st.pstdev(vals) / mean, 4) if mean else None})
+                outliers_out += [{"g": name, "v": round(v, 6)} for v in outs[:40]]
+            groups.sort(key=lambda g: -g["median"])
+            groups = groups[:d.get("top", 10)]
+            keep = {g["name"] for g in groups}
+            return {"groups": groups, "outliers_pts": [o for o in outliers_out if o["g"] in keep][:300],
+                    "y_label": col_cn(vcol), "x_label": col_cn(dim),
+                    "outlier_total": sum(g["outliers"] for g in groups)}
+        if t == "qq":
+            import statistics as _st
+            vcol = d["column"]; filt = f' WHERE {d["filter"]}' if d.get("filter") else ""
+            vals = []
+            for r in q(conn, f'SELECT "{vcol}" AS v FROM "{d["table"]}" WHERE "{vcol}" IS NOT NULL{filt}'):
+                try: vals.append(float(r["v"]))
+                except (TypeError, ValueError): pass
+            if len(vals) < 8:
+                return {"points": [], "ref": [], "n": len(vals), "note": "样本量不足以做正态Q-Q（需 >= 8）"}
+            vals.sort(); n = len(vals); mu = sum(vals) / n; sd = _st.pstdev(vals)
+            pts = []
+            for i, v in enumerate(vals, start=1):
+                p = (i - 0.375) / (n + 0.25)
+                pts.append([round(_norm_ppf(p), 5), round(v, 6)])
+            zs = [p[0] for p in pts]
+            zmin, zmax = min(zs), max(zs)
+            slope = sd if sd else 1
+            ref = [[round(zmin, 5), round(mu + slope * zmin, 6)], [round(zmax, 5), round(mu + slope * zmax, 6)]]
+            skew = round(sum(((v - mu) / sd) ** 3 for v in vals) / n, 4) if sd else None
+            kurt = round(sum(((v - mu) / sd) ** 4 for v in vals) / n - 3, 4) if sd else None
+            return {"points": pts[:d.get("top", 2000)], "ref": ref, "n": n,
+                    "mean": round(mu, 6), "std": round(sd, 6), "skew": skew, "kurtosis": kurt,
+                    "x_label": "理论分位数", "y_label": col_cn(vcol),
+                    "note": "样本量 > 5000，参考偏度/峰度判断" if n > 5000 else ""}
+        if t == "pareto":
+            m = metrics.get(d.get("metric"))
+            vcol, _filt, order = _agg_table(d, m)
+            rows = q(conn, f'SELECT "{d["dimension"]}" AS dm, "{vcol}" AS v FROM "{d["table"]}" '
+                          f'WHERE "{d["dimension"]}" IS NOT NULL{order} LIMIT {d.get("top", 12)}')
+            labels = [str(r["dm"]) for r in rows]
+            values = [r["v"] or 0 for r in rows]
+            total = sum(v for v in values if isinstance(v, (int, float)))
+            cum, run = [], 0.0
+            for v in values:
+                run += v if isinstance(v, (int, float)) else 0
+                cum.append(round(run / total * 100, 2) if total else 0)
+            vital_idx = next((i for i, cv in enumerate(cum) if cv >= 80), None)
+            return {"title": d.get("label") or f'{(m or {}).get("name", "")} 帕累托分析',
+                    "unit": (m or {}).get("unit", ""), "labels": labels,
+                    "values": values, "cum": cum, "total": total,
+                    "vital_label": (labels[vital_idx] if vital_idx is not None else None),
+                    "vital_count": (vital_idx + 1 if vital_idx is not None else None)}
+        if t == "missing":
+            rows = q(conn, f'SELECT * FROM "{d["table"]}"')
+            if not rows:
+                return {"labels": [], "overall": [], "counts": [], "group_col": None}
+            gcol = d.get("dimension")
+            groups = {}
+            for r in rows:
+                key = str(r.get(gcol)) if gcol else "全部"
+                groups.setdefault(key, []).append(r)
+            labels, rate, cnt = [], [], []
+            for key, rs in groups.items():
+                nn = len(rs); cells = nn * len(rs[0]); miss = 0
+                for r in rs:
+                    for v in r.values():
+                        if v is None or (isinstance(v, str) and v.strip() == ""): miss += 1
+                labels.append(key); cnt.append(nn)
+                rate.append(round(miss / cells * 100, 2) if cells else 0.0)
+            order = sorted(range(len(labels)), key=lambda i: -rate[i])[:d.get("top", 12)]
+            overall = []
+            for col in rows[0].keys():
+                nm = sum(1 for r in rows
+                         if r.get(col) is None or (isinstance(r.get(col), str) and str(r.get(col)).strip() == ""))
+                overall.append({"col": col_cn(col), "key": col, "rate": round(nm / len(rows) * 100, 2), "n": nm})
+            overall.sort(key=lambda x: -x["rate"])
+            return {"labels": [labels[i] for i in order], "rates": [rate[i] for i in order],
+                    "counts": [cnt[i] for i in order],
+                    "overall": overall[:d.get("col_top", 15)],
+                    "group_col": col_cn(gcol) if gcol else None}
+        if t == "corr":
+            cols = d.get("columns") or []
+            rows = q(conn, f'SELECT {", ".join(chr(34)+x+chr(34) for x in cols)} FROM "{d["table"]}"')
+            pairs = []
+            for r in rows:
+                vals, ok = [], True
+                for x in cols:
+                    try: vals.append(float(r[x]))
+                    except (TypeError, ValueError): ok = False; break
+                if ok: pairs.append(vals)
+            method = (d.get("method") or "pearson").lower()
+            def _rank(seq):
+                idx = sorted(range(len(seq)), key=lambda i: seq[i]); rk = [0.0] * len(seq); i = 0
+                while i < len(idx):
+                    j = i
+                    while j + 1 < len(idx) and seq[idx[j + 1]] == seq[idx[i]]: j += 1
+                    avg = (i + j) / 2 + 1
+                    for k in range(i, j + 1): rk[idx[k]] = avg
+                    i = j + 1
+                return rk
+            def _pearson(a, b):
+                n = len(a)
+                if n < 3: return None
+                ma_, mb_ = sum(a) / n, sum(b) / n
+                num = sum((a[i] - ma_) * (b[i] - mb_) for i in range(n))
+                da = sum((x - ma_) ** 2 for x in a) ** 0.5
+                db = sum((x - mb_) ** 2 for x in b) ** 0.5
+                return round(num / (da * db), 4) if da and db else None
+            series = list(zip(*pairs)) if pairs else [[] for _ in cols]
+            if method == "spearman":
+                series = [_rank(list(x)) for x in series]
+            matrix, labels = [], [col_cn(c) for c in cols]
+            for i in range(len(cols)):
+                matrix.append([1.0 if i == j else _pearson(list(series[i]), list(series[j])) for j in range(len(cols))])
+            flat = [abs(v) for row in matrix for v in row if isinstance(v, (int, float)) and v != 1.0]
+            return {"labels": labels, "keys": cols, "matrix": matrix, "method": method,
+                    "n": len(pairs), "max_abs": round(max(flat), 4) if flat else None,
+                    "title": d.get("label") or f"{'斯皮尔曼' if method == 'spearman' else '皮尔逊'}相关矩阵"}
+        if t == "regress":
+            xcol, ycol = d["x"], d["y"]
+            filt = f' WHERE {d["filter"]}' if d.get("filter") else ""
+            rows = q(conn, f'SELECT "{xcol}" AS x, "{ycol}" AS y FROM "{d["table"]}" '
+                          f'WHERE "{xcol}" IS NOT NULL AND "{ycol}" IS NOT NULL{filt} LIMIT {d.get("top", 2000)}')
+            pts = []
+            for r in rows:
+                try: pts.append([float(r["x"]), float(r["y"])])
+                except (TypeError, ValueError): pass
+            if len(pts) < 3:
+                return {"points": pts, "n": len(pts), "note": "样本量不足以拟合（需 >= 3）"}
+            n = len(pts); sx = sum(p[0] for p in pts); sy = sum(p[1] for p in pts)
+            sxx = sum(p[0] ** 2 for p in pts); sxy = sum(p[0] * p[1] for p in pts)
+            den = n * sxx - sx * sx
+            slope = (n * sxy - sx * sy) / den if den else 0.0
+            intercept = (sy - slope * sx) / n
+            my = sy / n
+            ss_tot = sum((p[1] - my) ** 2 for p in pts)
+            ss_res = sum((p[1] - (intercept + slope * p[0])) ** 2 for p in pts)
+            r2 = round(1 - ss_res / ss_tot, 4) if ss_tot else None
+            r = round((1 - ss_res / ss_tot) ** 0.5, 4) if ss_tot and ss_res <= ss_tot else None
+            xmin = min(p[0] for p in pts); xmax = max(p[0] for p in pts)
+            return {"points": pts, "n": n, "r2": r2, "r": r,
+                    "slope": round(slope, 6), "intercept": round(intercept, 6),
+                    "fit": [[round(xmin, 6), round(intercept + slope * xmin, 6)],
+                            [round(xmax, 6), round(intercept + slope * xmax, 6)]],
+                    "x_label": col_cn(xcol), "y_label": col_cn(ycol),
+                    "title": d.get("label") or f"{col_cn(ycol)} 与 {col_cn(xcol)} 回归"}
+
         if t == "area_stack":
             tcol = d.get("time_col") or (tcfg or {}).get("column")
             filt = f' AND ({d["filter"]})' if d.get("filter") else ""
@@ -512,7 +721,7 @@ def build_data(case_dir, cfg):
                 warnings.append(f"组件 {c['id']} 无数据，已跳过"); continue
             # M3 空数据自动隐藏（Metabase hide-empty-cards）：隐藏后行满自动补位
             t = c["type"]
-            empty = (t in ("bar","pie") and not data.get("rows") and not data.get("slices")) or                     (t == "table" and not data.get("rows")) or                     (t == "heatmap" and not data.get("rows")) or                     (t == "scatter" and not data.get("points")) or                     (t == "histogram" and not data.get("counts")) or                     (t in ("line","area_stack") and not data.get("series")) or                     (t == "radar" and not data.get("series")) or                     (t == "funnel" and not data.get("stages"))
+            empty = (t in ("bar","pie") and not data.get("rows") and not data.get("slices")) or                     (t == "table" and not data.get("rows")) or                     (t == "heatmap" and not data.get("rows")) or                     (t == "scatter" and not data.get("points")) or                     (t == "histogram" and not data.get("counts")) or                     (t in ("line","area_stack") and not data.get("series")) or                     (t == "radar" and not data.get("series")) or                     (t == "funnel" and not data.get("stages")) or                     (t == "box" and not data.get("groups")) or                     (t == "qq" and not data.get("points")) or                     (t == "pareto" and not data.get("values")) or                     (t == "missing" and not data.get("overall")) or                     (t == "corr" and not data.get("matrix")) or                     (t == "regress" and not data.get("points"))
             if empty:
                 warnings.append(f"组件 {c['id']} 数据为空，已自动隐藏（Metabase M3）"); continue
             comp_out = {"id":c["id"],"type":c["type"],"title":c.get("title",""),

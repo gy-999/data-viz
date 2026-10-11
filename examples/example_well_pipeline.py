@@ -4,10 +4,14 @@ from collections import Counter
 from pathlib import Path
 
 sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+# 可移植定位：以本文件所在目录为锚点，换机器/换用户名都不用改（v3）
+HERE = Path(__file__).resolve().parent
+
 FENCE = chr(96) * 3
 
-data_dir = r"D:\\数据\\ZJsftp\\IRM_IV_WELL_D"
-out_dir = r"D:\\study\\NewPeople\\data\\data-viz\\output\\well_dashboard_v2"
+# 数据目录：默认占位符，可用环境变量覆盖 ->  $env:DATA_VIZ_DATA_DIR="D:\你的数据\ZJsftp\..."
+data_dir = os.environ.get("DATA_VIZ_DATA_DIR", r"D:\\你的数据\\ZJsftp\\IRM_IV_WELL_D")
+out_dir = os.environ.get("DATA_VIZ_OUT_DIR", str(HERE.parent / "output" / "well_dashboard_v2"))
 os.makedirs(out_dir, exist_ok=True)
 os.makedirs(os.path.join(out_dir, "artifacts"), exist_ok=True)
 
@@ -205,7 +209,7 @@ cfg = {
         {"id": "b4", "type": "bar", "metric": "cnt", "table": "ads_year", "dimension": "yr", "label": "入网年份分布（按入网时间聚合）", "order": "yr ASC", "top": 20},
         {"id": "h2", "type": "heading", "content": "二、码值字典与数据说明（发给同事前请先读这里）"},
         {"id": "tb", "type": "table", "table": "ads_codebook", "columns": ["fld","val","meaning","basis"], "top": 15, "title": "码值字典（官方备注 + 待确认项）"},
-        {"id": "tx", "type": "text", "content": "数据说明：来源 D:/数据/ZJsftp/IRM_IV_WELL_D（7 个 CSV.GZ 分片，2026-09-14 导出），共 1,409,711 条 × 130 字段，字段中文名取自《4个哑资源视图1204》官方字典。如何解读：生命周期状态按官方备注翻译（1规划/2设计/3工程/4在网/5维护/6退网），本库 93.4% 在网；地市/区县分布从井名称解析真实地名；显示类别、产权性质的码值系统未提供含义，需业务方确认后更新码值字典重出看板。如何转发：本文件为单文件离线网页，直接用微信/邮件发送，对方双击用浏览器打开即可，无需安装软件；L3 下钻明细基于前 5 万行抽样。"},
+        {"id": "tx", "type": "text", "content": "数据说明：来源 D:/你的数据/ZJsftp/IRM_IV_WELL_D（7 个 CSV.GZ 分片，2026-09-14 导出），共 1,409,711 条 × 130 字段，字段中文名取自《4个哑资源视图1204》官方字典。如何解读：生命周期状态按官方备注翻译（1规划/2设计/3工程/4在网/5维护/6退网），本库 93.4% 在网；地市/区县分布从井名称解析真实地名；显示类别、产权性质的码值系统未提供含义，需业务方确认后更新码值字典重出看板。如何转发：本文件为单文件离线网页，直接用微信/邮件发送，对方双击用浏览器打开即可，无需安装软件；L3 下钻明细基于前 5 万行抽样。"},
     ],
     "drill": {
         "l2": {"dimensions": [
@@ -233,7 +237,7 @@ with open(os.path.join(out_dir, "dashboard.config.yaml"), "w", encoding="utf-8")
     yaml.dump(cfg, f, allow_unicode=True, default_flow_style=False, sort_keys=False)
 
 print("[5/7] FIELD_CN official names...")
-rp = r"D:\\study\\NewPeople\\data\\data-viz\\scripts\\render_universal_dashboard.py"
+rp = str(HERE.parent / "scripts" / "render_universal_dashboard.py")
 src = open(rp, encoding="utf-8").read()
 NEW = "    # ---- WELL 数据集字段字典 v2（官方中文名来自《4个哑资源视图1204》）----\n"
 NEW += '    "ID": "标识", "NAME": "名称", "CODE": "编码", "NFCID": "NFC标签",\n'
@@ -268,7 +272,7 @@ if res.returncode != 0:
 html_path = os.path.join(out_dir, "dashboard.html")
 print("[7/7] Gate + verify...")
 chk = subprocess.run([sys.executable, "-X", "utf8",
-    r"D:\\study\\NewPeople\\data\\data-viz\\scripts\\dashboard_check.py", html_path],
+    str(HERE.parent / "scripts" / "dashboard_check.py"), html_path],
     capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=60)
 print(chk.stdout.strip())
 
@@ -285,7 +289,7 @@ for c in dom["components"]:
 print("l2dims:", len(d.get("drill",{}).get("l2dims",[])), "| l3:", "PRESENT" if d.get("drill",{}).get("l3") else "null")
 print("SIZE:", round(len(h)/1024), "KB")
 
-shallow = r"D:\\study\\NewPeople\\data\\WELL数据看板.html"
+shallow = str(HERE.parent / "WELL数据看板.html")
 shutil.copyfile(html_path, shallow)
 print("COPIED ->", shallow)
 

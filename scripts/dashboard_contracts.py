@@ -136,14 +136,16 @@ SELECTION_RULES = {
     # 意图: (数据形态要求, 推荐组件按优先级)
     "趋势":     ("时序列 + 度量", ["line", "area_stack"]),
     "构成":     ("分类维 + 度量", ["pie", "bar"]),
-    "排名":     ("分类维 + 度量", ["bar"]),
-    "分布":     ("单个数值列", ["histogram"]),
+    "排名":     ("分类维 + 度量", ["bar", "pareto"]),
+    "分布":     ("单个数值列", ["histogram", "box", "qq"]),
     "交叉":     ("分类维 + ≥2 指标", ["heatmap"]),
     "明细":     ("任意", ["table"]),
     "流向":     ("≥2 阶段度量", ["funnel", "sankey"]),
     "目标":     ("单值 + 目标值", ["bullet", "gauge"]),
-    "相关":     ("两个数值列", ["scatter"]),
+    "相关":     ("两个数值列", ["scatter", "corr", "regress"]),
     "多维对比": ("分类维 + ≥3 指标", ["radar"]),
+    "数据质量": ("任意（查缺失）", ["missing"]),
+    "组间比较": ("分类维 + 数值列", ["box"]),
 }
 
 # 每组件类型的数据形态前置条件（闸门校验用；违反=警告不阻断）
@@ -162,6 +164,13 @@ TYPE_PREREQUISITES = {
     "kpi":        "需要单值指标", "table": "任意数据形态",
     "text": "无数据要求", "heading": "无数据要求",
     "waterfall": "字面 items（增量构成）", "sankey": "字面 nodes/links（流向）",
+    # ---- 统计分析扩展（v4）----
+    "box":     "需要 分类维 + 数值列；每组至少 2 个数值（四分位与离群点检测）",
+    "qq":      "需要单个数值列；样本量 ≥8（正态性目视判断）",
+    "pareto":  "需要 分类维 + 度量；用于找'关键少数'（80/20）",
+    "missing": "需要任意表；按维度分组可对比组间缺失",
+    "corr":    "需要 ≥2 个数值列；皮尔逊（线性）或斯皮尔曼（秩，抗非线性/离群）",
+    "regress": "需要两个数值列（x/y 都是 measure）；给出斜率/截距/R²",
 }
 
 def _sem(dictionary, table, field):
@@ -201,6 +210,29 @@ def check_selection(cfg, dictionary):
         elif t == "histogram":
             if _sem(dictionary, c.get("table"), c.get("column")) not in ("measure", "rate"):
                 warn(f"选型提醒：直方图的列 '{c.get('column')}' 不是数值列。{TYPE_PREREQUISITES['histogram']}")
+        elif t == "box":
+            if not c.get("column") or _sem(dictionary, c.get("table"), c.get("column")) not in ("measure", "rate"):
+                warn(f"选型提醒：箱线图的数值列 '{c.get('column')}' 不是数值列。{TYPE_PREREQUISITES['box']}")
+            if not c.get("dimension"):
+                warn(f"选型提醒：箱线图缺少分类维 dimension（用于组间对比）。{TYPE_PREREQUISITES['box']}")
+        elif t == "qq":
+            if not c.get("column") or _sem(dictionary, c.get("table"), c.get("column")) not in ("measure", "rate"):
+                warn(f"选型提醒：Q-Q 图的列 '{c.get('column')}' 不是数值列。{TYPE_PREREQUISITES['qq']}")
+        elif t == "pareto":
+            if not c.get("dimension") or not c.get("metric"):
+                warn(f"选型提醒：帕累托图需要 dimension + metric。{TYPE_PREREQUISITES['pareto']}")
+        elif t == "missing":
+            if not c.get("table"):
+                warn(f"选型提醒：缺失值画像需要指定 table。{TYPE_PREREQUISITES['missing']}")
+        elif t == "corr":
+            if len(c.get("columns") or []) < 2:
+                warn(f"选型提醒：相关矩阵至少需要 2 个数值列。{TYPE_PREREQUISITES['corr']}")
+            elif (c.get("method") or "pearson").lower() not in ("pearson", "spearman"):
+                warn("选型提醒：method 仅支持 pearson / spearman，已按 pearson 处理")
+        elif t == "regress":
+            for ax in ("x", "y"):
+                if _sem(dictionary, c.get("table"), c.get(ax)) not in ("measure", "rate"):
+                    warn(f"选型提醒：回归图 {ax} 轴字段 '{c.get(ax)}' 不是数值列。{TYPE_PREREQUISITES['regress']}")
         elif t == "scatter":
             for ax in ("x", "y"):
                 if _sem(dictionary, c.get("table"), c.get(ax)) not in ("measure", "rate"):

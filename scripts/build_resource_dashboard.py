@@ -7,7 +7,9 @@ sys.stdout.reconfigure(encoding="utf-8", errors="replace")
 args = sys.argv[1:]
 data_dir, out_dir, title, unit, view_name = args[0], args[1], args[2], args[3], args[4]
 
-vd = json.load(open(r"D:\\study\\NewPeople\\data\\data-viz\\output\\well_dashboard_v2\\view_dict.json", encoding="utf-8"))
+HERE = Path(__file__).resolve().parent
+_vd_path = Path(os.environ.get("VIEW_DICT", HERE.parent / "output" / "well_dashboard_v2" / "view_dict.json"))
+vd = json.load(open(_vd_path, encoding="utf-8")) if _vd_path.exists() else {}
 vdict = vd.get(view_name, {})
 memo = vdict.get("LIFECYCLESTATUS", {}).get("memo", "")
 LIFE = {}
@@ -155,7 +157,7 @@ with open(os.path.join(out_dir, "dashboard.config.yaml"), "w", encoding="utf-8")
     yaml.dump(cfg, f, allow_unicode=True, default_flow_style=False, sort_keys=False)
 
 print("[4] render...")
-rp = r"D:\\study\\NewPeople\\data\\data-viz\\scripts\\render_universal_dashboard.py"
+rp = str(HERE / "render_universal_dashboard.py")
 res = subprocess.run([sys.executable, "-X", "utf8", rp, out_dir],
                      capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=180)
 print("  exit:", res.returncode)
@@ -164,7 +166,7 @@ if res.returncode != 0:
 if res.stdout: print(" ", res.stdout.strip()[:150])
 
 chk = subprocess.run([sys.executable, "-X", "utf8",
-    r"D:\\study\\NewPeople\\data\\data-viz\\scripts\\dashboard_check.py",
+    str(HERE / "dashboard_check.py"),
     os.path.join(out_dir, "dashboard.html")],
     capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=60)
 print(chk.stdout.strip())

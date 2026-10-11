@@ -1,0 +1,22 @@
+# data-viz 依赖清单
+# 安装：<你的 python> -m pip install -r requirements.txt
+#
+# PyYAML 是硬依赖：渲染引擎与选型闸门在模块顶层 import yaml，缺了直接起不来。
+# matplotlib 仅在看板 PNG / 报告配图时需要。
+# pymysql / pdfplumber 分别对应 MySQL 与 PDF 通路，不用则该通路自然跳过。
+
+PyYAML>=6.0
+pandas>=1.5
+numpy>=1.23
+openpyxl>=3.0
+XlsxWriter>=3.0
+python-docx>=1.0
+python-pptx>=0.6
+Pillow>=9.0
+matplotlib>=3.6
+pymysql>=1.0
+pdfplumber>=0.10
+
+# 说明：sqlite3 是 Python 标准库组件，但部分发行版（如某些 Anaconda 安装）
+# 会因缺少 _sqlite3 DLL 而不可用——看板数仓与报告依赖它，请先验证：
+#   python -c "import sqlite3; print(sqlite3.sqlite_version)"

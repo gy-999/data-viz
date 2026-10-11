@@ -5,10 +5,14 @@ from pathlib import Path
 from datetime import datetime
 
 sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+# 可移植定位：以本文件所在目录为锚点，换机器/换用户名都不用改（v3）
+HERE = Path(__file__).resolve().parent
+
 FENCE = chr(96) * 3
 
-data_dir = r"D:\\数据\\ZJsftp\\IRM_V_ODF_D"
-out_dir = r"D:\\study\\NewPeople\\data\\data-viz\\output\\odf_dashboard"
+# 数据目录：默认占位符，可用环境变量覆盖 ->  $env:DATA_VIZ_DATA_DIR="D:\你的数据\ZJsftp\..."
+data_dir = os.environ.get("DATA_VIZ_DATA_DIR", r"D:\\你的数据\\ZJsftp\\IRM_V_ODF_D")
+out_dir = os.environ.get("DATA_VIZ_OUT_DIR", str(HERE.parent / "output" / "odf_dashboard"))
 os.makedirs(out_dir, exist_ok=True)
 os.makedirs(os.path.join(out_dir, "artifacts"), exist_ok=True)
 os.makedirs(os.path.join(out_dir, "source-cleaned"), exist_ok=True)
@@ -30,8 +34,13 @@ def colv(name):
     i = idx.get(name, -1)
     return [(r[i].strip() if i < len(r) else "") for r in all_rows] if i >= 0 else None
 
-# official dict
-vd = json.load(open(r"D:\\study\\NewPeople\\data\\data-viz\\output\\well_dashboard_v2\\view_dict.json", encoding="utf-8"))
+# official dict（沿用 WELL 案例产出的官方视图字典；没有就先跑 WELL 案例，或跳过字典翻译）
+vd = {}
+_vd_path = os.path.join(out_dir, "..", "well_dashboard_v2", "view_dict.json")
+if os.path.exists(_vd_path):
+    vd = json.load(open(_vd_path, encoding="utf-8"))
+else:
+    print("  [warn] 未找到 view_dict.json，跳过官方字典翻译（可先跑 example_well_pipeline.py 生成）")
 odf_dict = vd.get("IRM_V_ODF", {})
 LIFE = {"1":"规划","2":"设计","3":"工程","4":"在网","5":"维护","6":"退网"}
 for k in ["LIFECYCLESTATUS"]:
@@ -213,7 +222,7 @@ cfg = {
         {"id": "b3", "type": "bar", "metric": "cnt", "table": "ads_year", "dimension": "yr", "label": "入网年份分布", "order": "yr ASC"},
         {"id": "h2", "type": "heading", "content": "二、码值字典与数据说明（转发前请读）"},
         {"id": "tb", "type": "table", "table": "ads_codebook", "columns": ["fld","val","meaning","basis"], "top": 10, "title": "码值字典"},
-        {"id": "tx", "type": "text", "content": "数据说明：来源 D:/数据/ZJsftp/IRM_V_ODF_D，共 " + format(total, ",") + " 条 × " + str(len(headers)) + " 字段，字段中文名取自《4个哑资源视图1204》官方字典。ODF=光纤配线架。生命周期官方码值：1规划/2设计/3工程/4在网/5维护/6退网。如何转发：本文件为单文件离线网页，微信/邮件直发，对方双击浏览器打开即可；L3 明细为前 " + format(N_SAMPLE, ",") + " 行抽样。配套《ODF数据分析报告.docx》含完整口径卡与结论。"},
+        {"id": "tx", "type": "text", "content": "数据说明：来源 D:/你的数据/ZJsftp/IRM_V_ODF_D，共 " + format(total, ",") + " 条 × " + str(len(headers)) + " 字段，字段中文名取自《4个哑资源视图1204》官方字典。ODF=光纤配线架。生命周期官方码值：1规划/2设计/3工程/4在网/5维护/6退网。如何转发：本文件为单文件离线网页，微信/邮件直发，对方双击浏览器打开即可；L3 明细为前 " + format(N_SAMPLE, ",") + " 行抽样。配套《ODF数据分析报告.docx》含完整口径卡与结论。"},
     ],
     "drill": {
         "l2": {"dimensions": [
@@ -234,14 +243,19 @@ with open(os.path.join(out_dir, "dashboard.config.yaml"), "w", encoding="utf-8")
     yaml.dump(cfg, f, allow_unicode=True, default_flow_style=False, sort_keys=False)
 
 print("[7/8] FIELD_CN + render...")
-rp = r"D:\\study\\NewPeople\\data\\data-viz\\scripts\\render_universal_dashboard.py"
+rp = str(HERE.parent / "scripts" / "render_universal_dashboard.py")
 src = open(rp, encoding="utf-8").read()
 if "ODF 补充字典" not in src:
     add = ('    # ---- ODF 补充字典 ----\n'
            '    "EQUIPMENTTYPE": "设备类型", "equipmenttype": "设备类型",\n'
            '    "total_cnt": "资源总数", "city_cnt": "覆盖地市数",\n'
            '    "nfcstat": "NFC标签状态", "county_cnt": "覆盖区县数", "has_coord": "含坐标数",\n')
-    src = src.replace('    "city_parsed_cnt": "覆盖地市数",\n', '    "city_parsed_cnt": "覆盖地市数",\n' + add, 1)
+    # 插到 FIELD_CN 字典开头：不依赖任何数据集专属行（WELL 案例的正则重写会吞掉那些锚点）
+    marker = "FIELD_CN = {\n"
+    i = src.find(marker)
+    if i < 0:
+        print("  [warn] 未找到 FIELD_CN，跳过 ODF 字典补录"); sys.exit(1)
+    src = src[:i + len(marker)] + add + src[i + len(marker):]
     open(rp, "w", encoding="utf-8").write(src)
     print("  FIELD_CN + ODF entries")
 
@@ -254,7 +268,7 @@ if res.stdout: print(" ", res.stdout.strip()[:160])
 
 html_path = os.path.join(out_dir, "dashboard.html")
 chk = subprocess.run([sys.executable, "-X", "utf8",
-    r"D:\\study\\NewPeople\\data\\data-viz\\scripts\\dashboard_check.py", html_path],
+    str(HERE.parent / "scripts" / "dashboard_check.py"), html_path],
     capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=60)
 print(chk.stdout.strip())
 
@@ -271,6 +285,6 @@ for c in dom["components"]:
 print("l2dims:", len(d.get("drill",{}).get("l2dims",[])), "| l3:", "PRESENT" if d.get("drill",{}).get("l3") else "null")
 print("SIZE:", round(len(h)/1024), "KB")
 
-shallow = r"D:\\study\\NewPeople\\data\\ODF数据看板.html"
+shallow = str(HERE.parent / "ODF数据看板.html")
 shutil.copyfile(html_path, shallow)
 print("COPIED ->", shallow)

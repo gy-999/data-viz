@@ -5,11 +5,24 @@ description: "帮我看看这些数据" → AI 亲自当分析师。丢给它一
 
 # data-viz · 数据分析 Agent Skill
 
-**AI 亲自当分析师：丢给它一份数据，它还你一套能直接转发的东西。**
+**v3.0 · AI 直读 + 用户选单 + 统计分析扩展**
 
-**Give it any data — it reads, reasons, questions you with real numbers, and returns a shareable deliverable set: interactive dashboard + summary report (Word) + caliber cards, all gated.**
+**AI 亲自当分析师兼读取器：丢给它一份数据，它还你一套能直接转发的东西。**
+
+**Give it any data — the AI reads it directly, reasons, questions you with real numbers, and returns a shareable deliverable set: interactive dashboard + summary report (Word) + caliber cards, all gated.**
 
 > 已在 **13 组真实与公开数据**上端到端验证：从 304 行的定向脏数据到 **175 万行**业务分片，7 种输入通路全部通过，测试逼出并修复 4 个真实缺陷。
+> v3.0 新增：AI 直读为默认读法、输出选单（选图选交付物）、6 种统计分析图（共 **23 种**）。
+
+## v3.0 更新 | What's New
+
+| 更新 | 内容 |
+|---|---|
+| **读数据改为 AI 直接操作** | AI 全量/分块/抽样读入上下文并逐列查看真实值；本地脚本降级为「可选加速器」，不再是必经管线 |
+| **输出选单** | 探源与口径拍板后，先给分析意图菜单与交付物菜单，选择写入 `plan.json` 再生效 |
+| **统计分析扩展** | 新增箱线图、正态 Q-Q、帕累托、缺失值画像、相关矩阵、回归；图表类型达 **23 种** |
+| **运行环境说明** | 新增 `requirements.txt` 与 SKILL.md §9：三级解释器选择顺序、sqlite3 自检（避开损坏的 Python 发行版）|
+| **可移植性** | 清除全部机器相关绝对路径，改用 `Path(__file__)` 相对定位 + 环境变量覆盖 |
 
 ## 它做了什么 | What It Does
 
@@ -19,7 +32,7 @@ description: "帮我看看这些数据" → AI 亲自当分析师。丢给它一
    **Profiling** — nulls (incl. empty strings), enum overflow, dups, time cliffs, orphan FKs; code values auto-translated from official dictionaries.
 3. **口径拍板** — 每个指标一张口径卡：分子/分母/只算什么/不算什么，AI 拿真实数据举例确认，业务方签名生效——消灭"同名不同数"。
    **Caliber cards** — numerator/denominator per metric, confirmed against real data before implementation.
-4. **中文可读交互看板** — 单文件离线 HTML：五段式 KPI 卡（口径悬停可见分子分母）、17 种图表、24 列自动布局、L2→L3 下钻到逐条明细、码值字典表、生成闸门（展示字段没有中文名就拒绝渲染）。
+4. **中文可读交互看板** — 单文件离线 HTML：五段式 KPI 卡（口径悬停可见分子分母）、**23 种图表**（含箱线图/正态Q-Q/帕累托/缺失值画像/相关矩阵/回归）、24 列自动布局、L2→L3 下钻到逐条明细、码值字典表、生成闸门（展示字段没有中文名就拒绝渲染）。
    **Readable dashboard** — single-file offline HTML with 5-section KPI cards, caliber hover, L2/L3 drill-down, code-value dictionary table, generation gates.
 5. **数据总结报告必产** — 每份分析以 Word 总结报告收尾（AI 写叙事与结论，代码只排版）：概览 → 质量 → 指标 → 图表 → 洞察 → 建议 → 转发说明。没有总结文档的分析不算完成。
    **Summary report mandatory** — every analysis ends with a Word narrative report; no summary, not done.
