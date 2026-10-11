@@ -18,8 +18,16 @@ MONO_FONT = "Consolas"
 
 
 def _set_font(run, name=BODY_FONT, size=None, bold=None, color=None):
-    """run 级字体设置：同时写 ascii/hAnsi/eastAsia，中文才会真正用这个字体。"""
+    """run 级字体设置：同时写 ascii/hAnsi/eastAsia，中文才会真正用这个字体。
+
+    注意：python-docx 里 run.font.size = None 会**删除**字号，Word 侧表现为
+    <w:sz w:val="0"/>（字号 0）——整表文字塌成细条、看不见。因此这里绝不允许
+    字号落空：size 为 None 时回退到正文字号。
+    """
     from docx.oxml.ns import qn
+    from docx.shared import Pt
+    if size is None:
+        size = 10.5
     run.font.name = name
     rpr = run._element.get_or_add_rPr()
     rfonts = rpr.find(qn("w:rFonts"))
@@ -29,8 +37,7 @@ def _set_font(run, name=BODY_FONT, size=None, bold=None, color=None):
     rfonts.set(qn("w:ascii"), name)
     rfonts.set(qn("w:hAnsi"), name)
     rfonts.set(qn("w:eastAsia"), name)
-    if size is not None:
-        run.font.size = size
+    run.font.size = Pt(size)
     if bold is not None:
         run.font.bold = bold
     if color is not None:
