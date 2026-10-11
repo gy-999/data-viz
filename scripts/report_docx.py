@@ -60,17 +60,80 @@ def _shade(cell, hexcolor):
     pr.append(pr.makeelement(qn("w:shd"), {qn("w:val"): "clear", qn("w:fill"): hexcolor}))
 
 
+def _soften(text):
+    """给超长不可断 token（文件名/路径/URL）插入零宽空格，避免撑破单元格。
+
+    实测问题：`chinese_orders_gbk.csv` 这类长串在固定列宽下不换行，
+    文字被顶出表格右边缘（实测 529.4pt > 表格 527.6pt）。
+    """
+    def _ins(m):
+        tok = m.group(0)
+        if len(tok) < 12:
+            return tok
+        return re.sub(r"([._/\-])", "\\1\u200b", tok)   # 注意：替换串里必须用真实字符，不能用 \u 转义
+    return re.sub(r"[A-Za-z0-9][A-Za-z0-9._/\-]{11,}", _ins, str(text))
+
+
 def _table(doc, headers, rows, usable_twips, font_size=None):
-    """固定布局表格：按表头文本长度分配列宽，总宽=可用页宽。"""
+    """固定布局表格，总宽严格 = 可用页宽。
+
+    实测踩坑：只设 cell.width / table.width 不够——python-docx 写入的 tblGrid 仍是
+    均分宽度，且合计会超出可用页宽（实测 9747 twips vs 可用 9360），导致表格右边
+    被裁掉。因此这里显式重建 w:tblGrid 与 w:tblW，并把每列宽度对齐到同一组数值。
+    """
     from docx.shared import Twips
-    t = doc.add_table(rows=1, cols=len(headers))
+    from docx.oxml.ns import qn
+    from docx.oxml import OxmlElement
+
+    n = len(headers)
+    t = doc.add_table(rows=1, cols=n)
     t.style = "Light Grid Accent 1"
     t.autofit = False
-    weights = [max(len(str(h)), 6) for h in headers]
-    budget = usable_twips
-    widths = [max(int(budget * w / sum(weights)), 700) for w in weights]
+
+    # 按“显示宽度”分配列宽：中文按 2 个单位算（len() 会把中英文算成同宽，
+    # 导致中文表头被挤压、列宽趋近均分——实测问题）。取样 %85 分位，避免被超长值拉爆。
+    def _dw(s):
+        return sum(2 if ord(c) > 0x2E80 else 1 for c in str(s))
+
+    weights = []
+    for i in range(n):
+        col_vals = [str(r[i]) for r in rows if i < len(r)]
+        col_vals.sort(key=_dw)
+        p85 = _dw(col_vals[int(len(col_vals) * 0.85)]) if col_vals else 0
+        weights.append(max(_dw(headers[i]), min(p85, 40), 4))
+    # 列宽上下限：两列表格首列收紧到 28%（避免“项目”列大片留白），
+    # 多列表格单列限制在 10%~45%
+    budget = int(usable_twips)
+    if n == 2:
+        lo, hi = budget * 0.14, budget * 0.28
+    else:
+        lo, hi = budget * 0.10, budget * 0.45
+    widths = [min(max(budget * w / sum(weights), lo), hi) for w in weights]
     scale = budget / sum(widths)
-    widths = [int(w * scale) for w in widths]
+    widths = [max(int(w * scale), 300) for w in widths]
+    widths[-1] += budget - sum(widths)          # 余数补给最后一列，确保合计精确
+
+    # 1) 重建 tblGrid
+    tbl = t._tbl
+    for old in tbl.findall(qn("w:tblGrid")):
+        tbl.remove(old)
+    grid = OxmlElement("w:tblGrid")
+    for w in widths:
+        gc = OxmlElement("w:gridCol")
+        gc.set(qn("w:w"), str(w))
+        grid.append(gc)
+    tblPr = tbl.tblPr
+    tblPr.addnext(grid)
+
+    # 2) 显式 tblW（dxa 绝对值，防止渲染器按内容撑宽）
+    for old in tblPr.findall(qn("w:tblW")):
+        tblPr.remove(old)
+    tblW = OxmlElement("w:tblW")
+    tblW.set(qn("w:w"), str(sum(widths)))
+    tblW.set(qn("w:type"), "dxa")
+    tblPr.append(tblW)
+
+    # 3) 每行每格 tcW 与 gridCol 对齐
     for i, h in enumerate(headers):
         cell = t.rows[0].cells[i]
         cell.text = ""
@@ -78,11 +141,19 @@ def _table(doc, headers, rows, usable_twips, font_size=None):
         _shade(cell, "EEF1F5")
     for row in rows:
         cells = t.add_row().cells
-        for i, v in enumerate(row[:len(headers)]):
+        for i, v in enumerate(row[:n]):
             cells[i].text = ""
-            _add_inline(cells[i].paragraphs[0], v, font_size)
+            _add_inline(cells[i].paragraphs[0], _soften(v), font_size)
     for r in t.rows:
         for i, w in enumerate(widths):
+            tc = r.cells[i]._tc
+            tcPr = tc.get_or_add_tcPr()
+            for old in tcPr.findall(qn("w:tcW")):
+                tcPr.remove(old)
+            tcW = OxmlElement("w:tcW")
+            tcW.set(qn("w:w"), str(w))
+            tcW.set(qn("w:type"), "dxa")
+            tcPr.append(tcW)
             r.cells[i].width = Twips(w)
     t.width = Twips(sum(widths))
     return t
@@ -107,6 +178,8 @@ def render_report(spec, out_path):
         except KeyError:
             pass
     for s in doc.sections:
+        s.page_width = Cm(21.0)          # A4：显式固定，避免默认 Letter 导致宽度误判
+        s.page_height = Cm(29.7)
         s.left_margin = s.right_margin = Cm(2.2)
     usable = (doc.sections[0].page_width.twips - doc.sections[0].left_margin.twips
               - doc.sections[0].right_margin.twips)
