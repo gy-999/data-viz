@@ -87,18 +87,36 @@ description: "帮我看看这些数据" → AI 亲自当分析师。丢给它一
 
 ```text
 data-viz/
-├── SKILL.md                 # 触发 + AI 分析方式 + 探源清单 + 口径拍板 + 场景策略
+├── SKILL.md                 # 触发 + AI 读法 + 输出选单 + 探源清单 + 口径拍板 + 运行环境
+├── requirements.txt         # 依赖清单（PyYAML 为硬依赖）
 ├── references/              # 数据源策略 / 图表选型 / 质量规则 / 性能策略 / 报告模板
 ├── assets/                  # 口径卡模板 / 九问检查单
-├── scripts/                 # 工具箱（media_probe / doc_extract / sql_parser / 渲染引擎 / 闸门）
+├── scripts/                 # 工具箱（渲染引擎 23 组件 / 闸门 / 报告 / 媒体 / 文档 / SQL）
 │   └── vendor/echarts.min.js
-├── examples/                # 端到端案例（WELL 175万 / ODF 14万）
+├── examples/                # 端到端案例（WELL / ODF，需自有数据，可当配置模板）
 └── evals/evals.json         # 测试用例
 ```
 
+## 安装 | Install
+
+把 `data-viz` 文件夹复制到 Agent 的 skills 目录即可（DSH：`~/.dsh/skills/`；Claude Code：`~/.claude/skills/`），然后安装依赖：
+
+```bash
+<python> -m pip install -r requirements.txt
+<python> -c "import sqlite3; print(sqlite3.sqlite_version)"   # 看板数仓依赖它
+```
+
+> 详细的环境选择与常见坑（含损坏的 Python 发行版）见 `SKILL.md` 第 9 节。
+
+## 仓库 | Repository
+
+- 源码：**https://github.com/gy-999/data-viz**
+- 直接下载：https://codeload.github.com/gy-999/data-viz/zip/refs/heads/main
+- 版本标签：`v3.0`（AI 直读 + 用户选单 + 23 种图表）· `v2.1`（历史版本）
+
 ## 致谢 | Credits
 
-- 看板渲染引擎与设计系统来自 **[dsh-dashboard-ai](https://github.com/33Wade333/dsh-dashboard-ai)**（MIT）——17 组件、24 列网格、生成闸门直接复用其成熟实现；
+- 看板渲染引擎与设计系统来自 **[dsh-dashboard-ai](https://github.com/33Wade333/dsh-dashboard-ai)**（MIT）——24 列网格与生成闸门复用其成熟实现（本仓库在其基础上扩展至 23 种组件）；
 - 口径卡与探源方法论参考 **[data-model-builder](https://github.com/33Wade333/data-model-builder)**（MIT）；
 - 本 skill 是两者链路（语义建模 → 口径统一 → 一键看板）中的**快速数据体检与交付**一环。
 

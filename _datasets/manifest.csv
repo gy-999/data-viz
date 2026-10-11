@@ -1,0 +1,26 @@
+﻿group,file,bytes,source_file,note
+01_public_csv,tips.csv,9729,tips.csv,餐厅小费：分类维度+数值指标，最小演示样本
+01_public_csv,flights.csv,2350,flights.csv,月度航班旅客数：时间序列 / 时间悬崖练手
+01_public_csv,iris.csv,3858,iris.csv,鸢尾花：三分类枚举，最经典的分类演示
+01_public_csv,penguins.csv,13478,penguins.csv,企鹅：含缺失值的分类演示
+01_public_csv,gapminder.csv,82079,gapminder.csv,国家-年-寿命-GDP：多国多年度，适合折线+散点看板
+01_public_csv,titanic.csv,60302,titanic.csv,泰坦尼克：Age/Cabin 大量缺失，生还率口径歧义经典案例
+01_public_csv,diamonds.csv,2772143,diamonds.csv,53940 行钻石：价格/克拉/切工多维分析
+02_multitable/movielens,links.csv,197979,ml-latest-small.zip,多表关联：ratings/movies/links/tags，可查孤儿 movieId
+02_multitable/movielens,tags.csv,118660,ml-latest-small.zip,多表关联：ratings/movies/links/tags，可查孤儿 movieId
+02_multitable/movielens,ratings.csv,2483723,ml-latest-small.zip,多表关联：ratings/movies/links/tags，可查孤儿 movieId
+02_multitable/movielens,README.txt,8342,ml-latest-small.zip,多表关联：ratings/movies/links/tags，可查孤儿 movieId
+02_multitable/movielens,movies.csv,494431,ml-latest-small.zip,多表关联：ratings/movies/links/tags，可查孤儿 movieId
+03_text_dirty,bank_marketing.csv,5834924,bank_marketing.csv,分号分隔+带引号；枚举越界、pdays=999 缺省值陷阱、unknown 满天飞
+03_text_dirty,superstore.csv,2304566,superstore.csv,真实订单表：重复订单号、日期格式不一致、折扣列有 None 字符串
+03_text_dirty,chinese_orders_gbk.csv,498657,superstore.csv (locally rewritten),GBK 编码 + 中文表头：故意含空串空值/重复订单号/None 折扣，验证编码级联与探源六项
+05_geo_time,earthquakes_2024.csv,2676410,earthquakes_2024.csv,USGS 真实地震：经纬度、深度、震级、时间，适合地图+时间序列
+05_geo_time,weather_seattle_2016.csv,456160,weather_seattle_2016.csv,1948 起逐日气温：长期时间序列，适合时间悬崖演示
+05_geo_time,china_region_codes.json,1926845,china_region_codes.csv,全国省市区街道四级行政区划 JSON（中文）
+06_excel,financial_sample.xlsx,83418,financial_sample.xlsx,微软官方 Financial Sample：701 行 x 16 列，Segment/Country/Product/利润
+07_sql,chinook_sqlite.sql,595545,chinook.sql,Chinook 音乐库建表+INSERT 脚本：11 张表，含外键关系
+08_large,orders_large_600k.csv,50333051,(generated),60 万行 x 11 列：验证 >50 万行时的分块/抽样自适应与时间悬崖
+04_media_inventory,137 images,127642354,local machine scan,含 18 组完全重复图，media_probe 重复检测演示
+04_media_inventory,10 videos,106854175,local machine scan,视频文件级盘点
+04_media_inventory,18 documents,13433571,local machine scan,docx/pptx/pdf/xlsx：doc_extract 表格抽取
+04_media_inventory,14 archives,64633184,local machine scan,zip 资产盘点
